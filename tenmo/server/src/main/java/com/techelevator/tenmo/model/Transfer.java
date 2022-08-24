@@ -6,7 +6,7 @@ public class Transfer {
     private int transferId;
     private int fromUserId;
     private int toUserId;
-    private BigDecimal amount;
+    private BigDecimal transferAmount;
     private String status;
 
 
@@ -34,12 +34,12 @@ public class Transfer {
         this.toUserId = toUserId;
     }
 
-    public BigDecimal getAmount() {
-        return amount;
+    public BigDecimal getTransferAmount() {
+        return transferAmount;
     }
 
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
+    public void setTransferAmount(BigDecimal transferAmount) {
+        this.transferAmount = transferAmount;
     }
 
     public String getStatus() {
@@ -56,7 +56,7 @@ public class Transfer {
                 "transferId=" + transferId +
                 ", fromUserId=" + fromUserId +
                 ", toUserId=" + toUserId +
-                ", amount=" + amount +
+                ", amount=" + transferAmount +
                 ", status='" + status + '\'' +
                 '}';
     }

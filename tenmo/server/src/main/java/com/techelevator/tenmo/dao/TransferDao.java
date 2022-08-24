@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface TransferDao {
 
-    List<Transfer> listTransfersById(int userId);
+    List<Transfer> listTransfersByUserId(int userId);
 
     Transfer getTransferById(int transferId);
 
@@ -15,5 +15,5 @@ public interface TransferDao {
 
     Transfer requestTransfer(int fromUserId, int toUserId, BigDecimal transferAmount);
 
-    boolean updateTransferStatus (int transferId, String status);
+    void updateTransferStatus (int transferId, String status);
 }

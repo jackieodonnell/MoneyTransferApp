@@ -5,9 +5,11 @@ import com.techelevator.tenmo.model.Transfer;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
+@Component
 public class JdbcAccountDao implements AccountDao{
 
     private JdbcTemplate jdbcTemplate;
@@ -29,6 +31,12 @@ public class JdbcAccountDao implements AccountDao{
     }
 
     @Override
+    public BigDecimal getBalanceByUserId(int userId) {
+        Account account = findAccountByUserId(userId);
+        return account.getBalance();
+    }
+
+    @Override
     public int createAccount(int userId) {
         String sql = "INSERT INTO account (user_id, balance) " +
                 "VALUES (?, ?) RETURNING account_id";
@@ -41,28 +49,29 @@ public class JdbcAccountDao implements AccountDao{
         return accountId;
     }
 
+    @Override
+    public boolean adjustBalance (Transfer transfer) {
+        boolean success = false;
+        Account fromAccount = findAccountByUserId(transfer.getFromUserId());
+        Account toAccount = findAccountByUserId(transfer.getToUserId());
+        if (fromAccount.getAccountId() != toAccount.getAccountId() && transfer.getTransferAmount().compareTo(new BigDecimal("0.00")) > 0) {
+            if (fromAccount.getBalance().subtract(transfer.getTransferAmount()).compareTo(new BigDecimal("0.00")) > 0) {
+
+                String sql = "UPDATE account SET balance = ? WHERE user_id = ?";
+                jdbcTemplate.update(sql, fromAccount.getBalance().subtract(transfer.getTransferAmount()), fromAccount.getUserId());
+
+                jdbcTemplate.update(sql, toAccount.getBalance().add(transfer.getTransferAmount()), toAccount.getUserId());
+                success = true;
+            }
+        }
+        return success;
+    }
+
     public Account mapRowToAccount(SqlRowSet results){
         Account account = new Account();
         account.setAccountId(results.getInt("account_id"));
         account.setBalance(results.getBigDecimal("balance"));
         account.setUserId(results.getInt("user_id"));
         return account;
-    }
-
-    public boolean adjustBalance (Transfer transfer) {
-        boolean success = false;
-        Account fromAccount = findAccountByUserId(transfer.getFromUserId());
-        Account toAccount = findAccountByUserId(transfer.getToUserId());
-        if (fromAccount.getAccountId() != toAccount.getAccountId()) {
-            if (fromAccount.getBalance().compareTo(transfer.getAmount()) == 1) {
-
-                String sql = "UPDATE account SET balance = ? WHERE user_id = ?";
-                jdbcTemplate.update(sql, fromAccount.getBalance().subtract(transfer.getAmount()), fromAccount.getUserId());
-
-                jdbcTemplate.update(sql, toAccount.getBalance().add(transfer.getAmount()), toAccount.getUserId());
-                success = true;
-            }
-        }
-        return success;
     }
 }
