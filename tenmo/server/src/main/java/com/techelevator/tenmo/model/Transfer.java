@@ -9,6 +9,14 @@ public class Transfer {
     private BigDecimal transferAmount;
     private String status;
 
+    public Transfer() {
+    }
+
+    public Transfer(int fromUserId, int toUserId, BigDecimal transferAmount) {
+        this.fromUserId = fromUserId;
+        this.toUserId = toUserId;
+        this.transferAmount = transferAmount;
+    }
 
     public int getTransferId() {
         return transferId;
