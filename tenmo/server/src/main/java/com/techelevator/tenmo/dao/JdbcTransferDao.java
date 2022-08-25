@@ -1,5 +1,6 @@
 package com.techelevator.tenmo.dao;
 
+import com.techelevator.tenmo.Exception.TransferNotFoundException;
 import com.techelevator.tenmo.model.Transfer;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
@@ -35,18 +36,20 @@ public class JdbcTransferDao implements TransferDao{
     }
 
     @Override
-    public Transfer getTransferById(int transferId) {
+    public Transfer getTransferById(int transferId) throws TransferNotFoundException {
         String sql = "SELECT transfer_id, from_user_id, to_user_id, amount, status FROM transfer WHERE transfer_id = ?";
         SqlRowSet results = jdbcTemplate.queryForRowSet(sql, transferId);
         Transfer transfer = new Transfer();
         if (results.next()) {
              transfer = mapRowToTransfer(results);
+        } else {
+            throw new TransferNotFoundException();
         }
         return transfer;
     }
 
     @Override
-    public int sendTransfer(int fromUserId, int toUserId, BigDecimal transferAmount) {
+    public int sendTransfer(int fromUserId, int toUserId, BigDecimal transferAmount) throws TransferNotFoundException {
         String sql = "INSERT INTO transfer (from_user_id, to_user_id, amount, status) VALUES (?,?,?,?) RETURNING transfer_id";
         int transferId = jdbcTemplate.queryForObject(sql, Integer.class, fromUserId, toUserId, transferAmount, "Approved");
         Transfer transfer = getTransferById(transferId);
