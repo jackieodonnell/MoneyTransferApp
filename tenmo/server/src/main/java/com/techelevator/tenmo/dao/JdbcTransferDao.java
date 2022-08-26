@@ -2,6 +2,7 @@ package com.techelevator.tenmo.dao;
 
 import com.techelevator.tenmo.Exception.TransferNotFoundException;
 import com.techelevator.tenmo.model.Transfer;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
@@ -36,6 +37,19 @@ public class JdbcTransferDao implements TransferDao{
     }
 
     @Override
+    public List<Transfer> listPendingByUserId(int userId) {
+        String sql =  "SELECT transfer_id, from_user_id, to_user_id, amount, status FROM transfer WHERE status = ? AND (from_user_id = ? OR to_user_id = ?)";
+        SqlRowSet results = jdbcTemplate.queryForRowSet(sql, "Pending", userId, userId);
+        List<Transfer> pendingList = new ArrayList<>();
+        while(results.next()) {
+            Transfer transfer = mapRowToTransfer(results);
+            pendingList.add(transfer);
+        }
+        return pendingList;
+    }
+
+
+    @Override
     public Transfer getTransferById(int transferId) throws TransferNotFoundException {
         String sql = "SELECT transfer_id, from_user_id, to_user_id, amount, status FROM transfer WHERE transfer_id = ?";
         SqlRowSet results = jdbcTemplate.queryForRowSet(sql, transferId);
@@ -63,8 +77,16 @@ public class JdbcTransferDao implements TransferDao{
     }
 
     @Override
-    public Transfer requestTransfer(int fromUserId, int toUserId, BigDecimal transferAmount) {
-        return null;
+    public int requestTransfer(int fromUserId, int toUserId, BigDecimal transferAmount) throws TransferNotFoundException, DataAccessException {
+        int transferId = -1;
+        if ((fromUserId == toUserId) || (transferAmount.compareTo(new BigDecimal("0.00")) <= 0)) {
+            throw new DataAccessException("Invalid transfer request!") {};
+        } else {
+            String sql = "INSERT INTO transfer (from_user_id, to_user_id, amount, status) VALUES (?,?,?,?) RETURNING transfer_id";
+            transferId = jdbcTemplate.queryForObject(sql, Integer.class, fromUserId, toUserId, transferAmount, "Pending");
+            Transfer transfer = getTransferById(transferId);
+        }
+        return transferId;
     }
 
     @Override
@@ -72,6 +94,21 @@ public class JdbcTransferDao implements TransferDao{
         String sql = "UPDATE transfer SET status = ? WHERE transfer_id = ?";
         jdbcTemplate.update(sql, status, transferId);
 
+    }
+
+    @Override
+    public boolean approveTransfer(int transferId, boolean isApproved) throws TransferNotFoundException {
+        boolean success = false;
+        Transfer transfer = getTransferById(transferId);
+        if (isApproved && transfer.getStatus().equals("Pending")) {
+            success = jdbcAccountDao.adjustBalance(transfer);
+            if (success) {
+                updateTransferStatus(transferId, "Approved");
+            }
+        } else {
+            updateTransferStatus(transferId, "Rejected");
+        }
+        return success;
     }
 
     private Transfer mapRowToTransfer(SqlRowSet results) {

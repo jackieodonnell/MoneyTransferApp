@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 public class TransferDTO {
 
     @NotEmpty
+
     private int toUserId;
     @NotEmpty
     private BigDecimal transferAmount;
