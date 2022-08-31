@@ -29,10 +29,4 @@ public class UserController {
         User user = userDao.findByUsername(username);
         return user;
     }
-
-/*    @RequestMapping(path = "/users/{username}", method = RequestMethod.GET)
-    public int getIdByUser(@PathVariable String username) {
-        int id = userDao.findIdByUsername(username);
-        return id;
-    }*/
 }

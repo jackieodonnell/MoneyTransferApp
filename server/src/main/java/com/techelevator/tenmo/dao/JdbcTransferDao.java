@@ -26,7 +26,8 @@ public class JdbcTransferDao implements TransferDao{
 
     @Override
     public List<Transfer> listTransfersByUserId(int userId) {
-        String sql = "SELECT transfer_id, from_user_id, to_user_id, amount, status FROM transfer WHERE from_user_id = ? OR to_user_id = ?";
+        String sql = "SELECT transfer_id, from_user_id, to_user_id, amount, status " +
+                "FROM transfer WHERE from_user_id = ? OR to_user_id = ?";
         SqlRowSet results = jdbcTemplate.queryForRowSet(sql, userId, userId);
         List<Transfer> transferList = new ArrayList<>();
         while(results.next()) {
@@ -38,7 +39,8 @@ public class JdbcTransferDao implements TransferDao{
 
     @Override
     public List<Transfer> listPendingByUserId(int userId) {
-        String sql =  "SELECT transfer_id, from_user_id, to_user_id, amount, status FROM transfer WHERE status = ? AND (from_user_id = ? OR to_user_id = ?)";
+        String sql =  "SELECT transfer_id, from_user_id, to_user_id, amount, status " +
+                "FROM transfer WHERE status = ? AND (from_user_id = ? OR to_user_id = ?)";
         SqlRowSet results = jdbcTemplate.queryForRowSet(sql, "Pending", userId, userId);
         List<Transfer> pendingList = new ArrayList<>();
         while(results.next()) {
@@ -51,7 +53,8 @@ public class JdbcTransferDao implements TransferDao{
 
     @Override
     public Transfer getTransferById(int transferId) throws TransferNotFoundException {
-        String sql = "SELECT transfer_id, from_user_id, to_user_id, amount, status FROM transfer WHERE transfer_id = ?";
+        String sql = "SELECT transfer_id, from_user_id, to_user_id, amount, status " +
+                "FROM transfer WHERE transfer_id = ?";
         SqlRowSet results = jdbcTemplate.queryForRowSet(sql, transferId);
         Transfer transfer = new Transfer();
         if (results.next()) {
@@ -64,11 +67,13 @@ public class JdbcTransferDao implements TransferDao{
 
     @Override
     public int sendTransfer(int fromUserId, int toUserId, BigDecimal transferAmount) throws TransferNotFoundException {
-        String sql = "INSERT INTO transfer (from_user_id, to_user_id, amount, status) VALUES (?,?,?,?) RETURNING transfer_id";
+        String sql = "INSERT INTO transfer (from_user_id, to_user_id, amount, status) " +
+                "VALUES (?,?,?,?) RETURNING transfer_id";
         int transferId = jdbcTemplate.queryForObject(sql, Integer.class, fromUserId, toUserId, transferAmount, "Approved");
         Transfer transfer = getTransferById(transferId);
 
-        // check if there's enough money, check not sending to self, decrease from balance, increase to balance,
+        // adjustBalance() verifies sender has sufficient funds, is sending to a different user, and
+        // decreases sender account balance/increases recipient account balance by transfer amount
         boolean success = jdbcAccountDao.adjustBalance(transfer);
         if (!success) {
             updateTransferStatus(transferId, "Rejected");
@@ -82,7 +87,8 @@ public class JdbcTransferDao implements TransferDao{
         if ((fromUserId == toUserId) || (transferAmount.compareTo(new BigDecimal("0.00")) <= 0)) {
             throw new DataAccessException("Invalid transfer request!") {};
         } else {
-            String sql = "INSERT INTO transfer (from_user_id, to_user_id, amount, status) VALUES (?,?,?,?) RETURNING transfer_id";
+            String sql = "INSERT INTO transfer (from_user_id, to_user_id, amount, status) " +
+                    "VALUES (?,?,?,?) RETURNING transfer_id";
             transferId = jdbcTemplate.queryForObject(sql, Integer.class, fromUserId, toUserId, transferAmount, "Pending");
             Transfer transfer = getTransferById(transferId);
         }
